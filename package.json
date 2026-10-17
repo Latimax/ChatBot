@@ -1,0 +1,26 @@
+{
+  "name": "groq-chat-playground",
+  "version": "1.0.0",
+  "description": "Developer playground for testing Groq chat models, organization prompt context, and rate limits.",
+  "type": "module",
+  "scripts": {
+    "install:all": "node scripts/install.js",
+    "dev": "node scripts/dev.js",
+    "dev:server": "npm --prefix server dev",
+    "dev:client": "npm --prefix client dev",
+    "test": "npm --prefix server test && npm --prefix client test",
+    "test:server": "npm --prefix server test",
+    "test:client": "npm --prefix client test",
+    "build": "npm --prefix client build"
+  },
+  "keywords": [
+    "groq",
+    "chatbot",
+    "playground",
+    "ai",
+    "rate-limits",
+    "developer-tools"
+  ],
+  "author": "",
+  "license": "MIT"
+}

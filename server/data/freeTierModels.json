@@ -1,0 +1,85 @@
+{
+  "lastVerified": "2026-10-17",
+  "sourceUrl": "https://console.groq.com/docs/rate-limits",
+  "documentationNotes": "Dated reference snapshot of Groq Free Plan published limits. Live account limits may differ and should be verified in the Groq console.",
+  "models": [
+    {
+      "id": "openai/gpt-oss-20b",
+      "name": "GPT-OSS 20B",
+      "developer": "OpenAI / Open Source",
+      "requestsPerMinute": 30,
+      "requestsPerDay": 1000,
+      "tokensPerMinute": 8000,
+      "tokensPerDay": 200000,
+      "contextWindow": 8192,
+      "category": "Chat & Instruction",
+      "recommended": true,
+      "description": "Featured lightweight open-source conversational model on the Groq Free Plan."
+    },
+    {
+      "id": "openai/gpt-oss-120b",
+      "name": "GPT-OSS 120B",
+      "developer": "OpenAI / Open Source",
+      "requestsPerMinute": 30,
+      "requestsPerDay": 1000,
+      "tokensPerMinute": 8000,
+      "tokensPerDay": 200000,
+      "contextWindow": 8192,
+      "category": "Chat & Complex Reasoning",
+      "recommended": false,
+      "description": "High-capacity conversational model listed on the Groq Free Plan."
+    },
+    {
+      "id": "qwen/qwen3.8-27b",
+      "name": "Qwen 3.8 27B",
+      "developer": "Alibaba Cloud / Qwen",
+      "requestsPerMinute": 30,
+      "requestsPerDay": 1000,
+      "tokensPerMinute": 8000,
+      "tokensPerDay": 200000,
+      "contextWindow": 32768,
+      "category": "Chat, Multilingual & Code",
+      "recommended": true,
+      "description": "Powerful 27B parameter multilingual model with large 32K context window."
+    },
+    {
+      "id": "llama-3.3-70b-versatile",
+      "name": "Llama 3.3 70B Versatile",
+      "developer": "Meta",
+      "requestsPerMinute": 30,
+      "requestsPerDay": 1000,
+      "tokensPerMinute": 6000,
+      "tokensPerDay": 100000,
+      "contextWindow": 128000,
+      "category": "General Purpose & Reasoning",
+      "recommended": true,
+      "description": "Meta's premier 70B parameter open weight model with massive 128K context."
+    },
+    {
+      "id": "llama-3.1-8b-instant",
+      "name": "Llama 3.1 8B Instant",
+      "developer": "Meta",
+      "requestsPerMinute": 30,
+      "requestsPerDay": 14400,
+      "tokensPerMinute": 20000,
+      "tokensPerDay": 500000,
+      "contextWindow": 128000,
+      "category": "Ultra-Fast Chat",
+      "recommended": true,
+      "description": "Ultra-low latency 8B model with generous daily allowances."
+    },
+    {
+      "id": "gemma2-9b-it",
+      "name": "Gemma 2 9B IT",
+      "developer": "Google",
+      "requestsPerMinute": 30,
+      "requestsPerDay": 14400,
+      "tokensPerMinute": 15000,
+      "tokensPerDay": 500000,
+      "contextWindow": 8192,
+      "category": "Instruction & Safety",
+      "recommended": false,
+      "description": "Google's 9B instruction-tuned model known for concise, high-quality answers."
+    }
+  ]
+}

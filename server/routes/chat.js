@@ -3,16 +3,63 @@ import { validateChatPayload } from '../lib/validators.js';
 import { buildMessages } from '../lib/buildMessages.js';
 import { createGroqChatCompletion, createGroqChatStream } from '../lib/groqClient.js';
 import { getApiKey } from '../lib/getApiKey.js';
+import { RagService } from '../lib/ragService.js';
 
 const router = express.Router();
+
+function resolveBackground({ useRag, ragTopK, query, fallbackBackground }) {
+  if (useRag) {
+    const chunks = RagService.retrieveRelevantChunks({
+      query,
+      topK: ragTopK ? parseInt(ragTopK, 10) : 3
+    });
+
+    if (chunks.length > 0) {
+      const retrievedContent = chunks
+        .map((c, i) => `### [Retrieved Section ${i + 1} - Match Score: ${c.relevanceScore}]\n${c.content}`)
+        .join('\n\n');
+
+      return {
+        background: retrievedContent,
+        ragMeta: {
+          enabled: true,
+          chunksCount: chunks.length,
+          chunks,
+          originalTokensEst: Math.round((fallbackBackground || '').length / 4),
+          retrievedTokensEst: Math.round(retrievedContent.length / 4)
+        }
+      };
+    }
+  }
+
+  return {
+    background: fallbackBackground,
+    ragMeta: {
+      enabled: false,
+      chunksCount: 0,
+      chunks: [],
+      originalTokensEst: Math.round((fallbackBackground || '').length / 4),
+      retrievedTokensEst: Math.round((fallbackBackground || '').length / 4)
+    }
+  };
+}
 
 // POST /api/preview — generate exact payload without calling Groq
 router.post('/preview', (req, res) => {
   try {
     const validated = validateChatPayload(req.body);
+    const { useRag, ragTopK } = req.body || {};
+
+    const { background: effectiveBackground, ragMeta } = resolveBackground({
+      useRag,
+      ragTopK,
+      query: validated.message,
+      fallbackBackground: validated.companyBackground
+    });
+
     const messages = buildMessages({
       systemInstructions: validated.systemInstructions,
-      companyBackground: validated.companyBackground,
+      companyBackground: effectiveBackground,
       customMessages: validated.customMessages,
       history: validated.history,
       message: validated.message
@@ -25,7 +72,8 @@ router.post('/preview', (req, res) => {
         temperature: validated.options.temperature,
         max_completion_tokens: validated.options.maxCompletionTokens,
         stream: false
-      }
+      },
+      rag: ragMeta
     });
   } catch (err) {
     res.status(400).json({
@@ -42,12 +90,23 @@ router.post('/preview', (req, res) => {
 router.post('/chat', async (req, res) => {
   let validated;
   let messages;
+  let ragMeta;
 
   try {
     validated = validateChatPayload(req.body);
+    const { useRag, ragTopK } = req.body || {};
+
+    const { background: effectiveBackground, ragMeta: resolvedMeta } = resolveBackground({
+      useRag,
+      ragTopK,
+      query: validated.message,
+      fallbackBackground: validated.companyBackground
+    });
+    ragMeta = resolvedMeta;
+
     messages = buildMessages({
       systemInstructions: validated.systemInstructions,
-      companyBackground: validated.companyBackground,
+      companyBackground: effectiveBackground,
       customMessages: validated.customMessages,
       history: validated.history,
       message: validated.message
@@ -82,7 +141,10 @@ router.post('/chat', async (req, res) => {
       maxCompletionTokens: validated.options.maxCompletionTokens
     });
 
-    res.json(result);
+    res.json({
+      ...result,
+      rag: ragMeta
+    });
   } catch (err) {
     const status = err.status || 500;
     res.status(status).json({
@@ -92,7 +154,8 @@ router.post('/chat', async (req, res) => {
         status
       },
       rateLimits: err.rateLimits || null,
-      latencyMs: err.latencyMs || null
+      latencyMs: err.latencyMs || null,
+      rag: ragMeta
     });
   }
 });
@@ -101,12 +164,23 @@ router.post('/chat', async (req, res) => {
 router.post('/chat/stream', async (req, res) => {
   let validated;
   let messages;
+  let ragMeta;
 
   try {
     validated = validateChatPayload(req.body);
+    const { useRag, ragTopK } = req.body || {};
+
+    const { background: effectiveBackground, ragMeta: resolvedMeta } = resolveBackground({
+      useRag,
+      ragTopK,
+      query: validated.message,
+      fallbackBackground: validated.companyBackground
+    });
+    ragMeta = resolvedMeta;
+
     messages = buildMessages({
       systemInstructions: validated.systemInstructions,
-      companyBackground: validated.companyBackground,
+      companyBackground: effectiveBackground,
       customMessages: validated.customMessages,
       history: validated.history,
       message: validated.message
@@ -155,8 +229,8 @@ router.post('/chat/stream', async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders?.();
 
-    // 1. Send meta event
-    res.write(`event: meta\ndata: ${JSON.stringify({ model: validated.model, rateLimits })}\n\n`);
+    // 1. Send meta event (including RAG retrieval info)
+    res.write(`event: meta\ndata: ${JSON.stringify({ model: validated.model, rateLimits, rag: ragMeta })}\n\n`);
 
     // 2. Read streamed chunks and parse SSE
     const reader = responseStream.getReader();
@@ -176,7 +250,7 @@ router.post('/chat/stream', async (req, res) => {
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(':')) continue; // Ignore empty lines & comments
+        if (!trimmed || trimmed.startsWith(':')) continue;
 
         if (trimmed.startsWith('data: ')) {
           const payload = trimmed.slice(6).trim();
@@ -227,7 +301,8 @@ router.post('/chat/stream', async (req, res) => {
         prompt_tokens: promptTokens,
         completion_tokens: completionTokens,
         total_tokens: totalTokens
-      }
+      },
+      rag: ragMeta
     })}\n\n`);
 
     res.end();
@@ -239,7 +314,8 @@ router.post('/chat/stream', async (req, res) => {
           message: err.message || 'Stream error occurred',
           status: err.status || 500
         },
-        rateLimits: err.rateLimits || null
+        rateLimits: err.rateLimits || null,
+        rag: ragMeta
       })}\n\n`);
       res.end();
     } else {
@@ -249,7 +325,8 @@ router.post('/chat/stream', async (req, res) => {
           message: err.message || 'Failed to start stream',
           status: err.status || 500
         },
-        rateLimits: err.rateLimits || null
+        rateLimits: err.rateLimits || null,
+        rag: ragMeta
       });
     }
   }

@@ -6,7 +6,10 @@ import {
   fetchFreeTierLimits,
   fetchPreview,
   sendChatMessage,
-  streamChatMessage
+  streamChatMessage,
+  fetchRagStatus,
+  indexRagDocument,
+  clearRagIndex
 } from '../lib/api.js';
 
 export const STARTER_COMPANY_TEMPLATE = `Organization name: Acme Cloud Solutions
@@ -53,6 +56,13 @@ export function useChatPlayground() {
   const [temperature, setTemperature] = useLocalStorage('gcp_temperature', 0.7);
   const [maxCompletionTokens, setMaxCompletionTokens] = useLocalStorage('gcp_max_tokens', 1024);
   const [isStreaming, setIsStreaming] = useLocalStorage('gcp_streaming', true);
+
+  // RAG (Retrieval-Augmented Generation) state
+  const [useRag, setUseRag] = useLocalStorage('gcp_use_rag', false);
+  const [ragTopK, setRagTopK] = useLocalStorage('gcp_rag_top_k', 3);
+  const [ragStatus, setRagStatus] = useState(null);
+  const [indexingRag, setIndexingRag] = useState(false);
+  const [lastRagMeta, setLastRagMeta] = useState(null);
 
   // Active Chat Session state
   const [history, setHistory] = useLocalStorage('gcp_chat_history', []);
@@ -116,10 +126,65 @@ export function useChatPlayground() {
     }
   }, [selectedModel, setSelectedModel]);
 
+  // Load RAG status
+  const refreshRagStatus = useCallback(async () => {
+    try {
+      const data = await fetchRagStatus();
+      setRagStatus(data);
+      if (data?.isIndexed) {
+        // Automatically default to Smart RAG when a knowledge base is already indexed
+        setUseRag(true);
+      }
+    } catch (err) {
+      console.warn('Could not load RAG status:', err);
+    }
+  }, [setUseRag]);
+
+  const handleIndexRagDocument = async (contentToUse = null) => {
+    const textToIndex = contentToUse !== null ? contentToUse : companyBackground;
+    if (!textToIndex || !textToIndex.trim()) return;
+
+    try {
+      setIndexingRag(true);
+      const res = await indexRagDocument({
+        title: 'Company Knowledge Base',
+        content: textToIndex
+      });
+      await refreshRagStatus();
+      setUseRag(true);
+      return res;
+    } catch (err) {
+      console.error('Failed to index document for RAG:', err);
+      throw err;
+    } finally {
+      setIndexingRag(false);
+    }
+  };
+
+  const handleClearRagIndex = async () => {
+    try {
+      await clearRagIndex();
+      await refreshRagStatus();
+    } catch (err) {
+      console.error('Failed to clear RAG index:', err);
+    }
+  };
+
   useEffect(() => {
     refreshHealth();
     loadModelsList();
-  }, [refreshHealth, loadModelsList]);
+    refreshRagStatus();
+
+    // Auto-sync status on window focus or short interval
+    const interval = setInterval(refreshRagStatus, 4000);
+    const handleFocus = () => refreshRagStatus();
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshHealth, loadModelsList, refreshRagStatus]);
 
   // Update Effective Preview automatically when inputs change
   useEffect(() => {
@@ -137,12 +202,17 @@ export function useChatPlayground() {
           options: {
             temperature,
             maxCompletionTokens
-          }
+          },
+          useRag,
+          ragTopK
         };
 
         const previewData = await fetchPreview(payload);
         if (!ignore) {
           setEffectivePayload(previewData);
+          if (previewData.rag) {
+            setLastRagMeta(previewData.rag);
+          }
         }
       } catch (err) {
         if (!ignore) {
@@ -158,7 +228,7 @@ export function useChatPlayground() {
       ignore = true;
       clearTimeout(timeout);
     };
-  }, [selectedModel, systemInstructions, companyBackground, customMessages, history, draftMessage, temperature, maxCompletionTokens]);
+  }, [selectedModel, systemInstructions, companyBackground, customMessages, history, draftMessage, temperature, maxCompletionTokens, useRag, ragTopK]);
 
   // Send message action
   const sendMessage = async (overrideMessage = null) => {
@@ -206,7 +276,9 @@ export function useChatPlayground() {
       options: {
         temperature,
         maxCompletionTokens
-      }
+      },
+      useRag,
+      ragTopK
     };
 
     abortControllerRef.current = new AbortController();
@@ -219,6 +291,9 @@ export function useChatPlayground() {
           onMeta: (meta) => {
             if (meta.rateLimits) {
               setLastRateLimits(meta.rateLimits);
+            }
+            if (meta.rag) {
+              setLastRagMeta(meta.rag);
             }
           },
           onDelta: (chunk) => {
@@ -234,6 +309,7 @@ export function useChatPlayground() {
           onDone: (doneData) => {
             setLastLatencyMs(doneData.latencyMs);
             if (doneData.usage) setLastUsage(doneData.usage);
+            if (doneData.rag) setLastRagMeta(doneData.rag);
             setLastStatus(200);
             setHistory(prev =>
               prev.map(item =>
@@ -242,7 +318,8 @@ export function useChatPlayground() {
                       ...item,
                       content: accumulatedReply,
                       latencyMs: doneData.latencyMs,
-                      usage: doneData.usage
+                      usage: doneData.usage,
+                      rag: doneData.rag
                     }
                   : item
               )
@@ -278,6 +355,7 @@ export function useChatPlayground() {
         setLastLatencyMs(result.latencyMs);
         setLastUsage(result.usage);
         setLastRateLimits(result.rateLimits);
+        if (result.rag) setLastRagMeta(result.rag);
         setLastStatus(200);
 
         setHistory(prev =>
@@ -288,7 +366,8 @@ export function useChatPlayground() {
                   content: result.reply,
                   latencyMs: result.latencyMs,
                   usage: result.usage,
-                  model: result.model
+                  model: result.model,
+                  rag: result.rag
                 }
               : item
           )
@@ -540,6 +619,16 @@ export function useChatPlayground() {
     exportProfiles,
     importProfiles,
     resetToDefaults,
-    clearAllData
+    clearAllData,
+    // RAG features
+    useRag,
+    setUseRag,
+    ragTopK,
+    setRagTopK,
+    ragStatus,
+    indexingRag,
+    lastRagMeta,
+    handleIndexRagDocument,
+    handleClearRagIndex
   };
 }

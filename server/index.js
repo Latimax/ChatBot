@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import healthRoutes from './routes/health.js';
 import modelsRoutes from './routes/models.js';
 import chatRoutes from './routes/chat.js';
+import ragRoutes from './routes/rag.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +28,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use('/api', healthRoutes);
 app.use('/api', modelsRoutes);
 app.use('/api', chatRoutes);
+app.use('/api/rag', ragRoutes);
 
 // Root information endpoint
 app.get('/', (req, res) => {

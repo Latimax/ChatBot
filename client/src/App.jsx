@@ -142,6 +142,16 @@ export default function App() {
                   setMaxCompletionTokens={playgroundState.setMaxCompletionTokens}
                   saveProfile={playgroundState.saveProfile}
                   activeProfileName={playgroundState.activeProfileName}
+                  selectedModel={playgroundState.selectedModel}
+                  models={playgroundState.models}
+                  useRag={playgroundState.useRag}
+                  setUseRag={playgroundState.setUseRag}
+                  ragTopK={playgroundState.ragTopK}
+                  setRagTopK={playgroundState.setRagTopK}
+                  ragStatus={playgroundState.ragStatus}
+                  indexingRag={playgroundState.indexingRag}
+                  handleIndexRagDocument={playgroundState.handleIndexRagDocument}
+                  handleClearRagIndex={playgroundState.handleClearRagIndex}
                 />
               </div>
 
@@ -181,6 +191,7 @@ export default function App() {
                   lastError={playgroundState.lastError}
                   lastStatus={playgroundState.lastStatus}
                   selectedModel={playgroundState.selectedModel}
+                  lastRagMeta={playgroundState.lastRagMeta}
                 />
               </div>
             </div>

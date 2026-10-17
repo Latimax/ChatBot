@@ -14,6 +14,29 @@ export async function fetchFreeTierLimits() {
   return res.json();
 }
 
+export async function fetchRagStatus() {
+  const res = await fetch('/api/rag/status');
+  return res.json();
+}
+
+export async function indexRagDocument({ title, content, chunkSize, chunkOverlap }) {
+  const res = await fetch('/api/rag/index', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, content, chunkSize, chunkOverlap })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error?.message || 'Failed to index RAG document');
+  }
+  return data;
+}
+
+export async function clearRagIndex() {
+  const res = await fetch('/api/rag/clear', { method: 'POST' });
+  return res.json();
+}
+
 export async function fetchPreview(payload) {
   const res = await fetch('/api/preview', {
     method: 'POST',

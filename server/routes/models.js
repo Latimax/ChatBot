@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchGroqModels } from '../lib/groqClient.js';
+import { getApiKey } from '../lib/getApiKey.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,13 +39,13 @@ router.get('/free-tier-limits', (req, res) => {
 
 // GET /api/models (Live discovery merged with snapshot)
 router.get('/models', async (req, res) => {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = getApiKey();
   const force = req.query.force === 'true';
   const snapshot = readFreeTierSnapshot();
   const snapshotMap = new Map((snapshot.models || []).map(m => [m.id, m]));
 
   // If no API key configured, return documented snapshot models
-  if (!apiKey || !apiKey.trim()) {
+  if (!apiKey) {
     const models = (snapshot.models || []).map(m => ({
       id: m.id,
       name: m.name,

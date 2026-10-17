@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppHeader } from './components/AppHeader.jsx';
 import { PromptStudio } from './components/PromptStudio.jsx';
 import { ChatPanel } from './components/ChatPanel.jsx';
@@ -8,13 +8,25 @@ import { ModelCompare } from './components/ModelCompare.jsx';
 import { ProfilesManager } from './components/ProfilesManager.jsx';
 import { TestScenarios } from './components/TestScenarios.jsx';
 import { useChatPlayground } from './hooks/useChatPlayground.js';
+import { useLocalStorage } from './hooks/useLocalStorage.js';
 import { AlertTriangle, Key, ExternalLink, Sliders, MessageSquare, Code } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('playground'); // 'playground' | 'explorer' | 'compare' | 'scenarios' | 'profiles'
   const [mobilePlaygroundTab, setMobilePlaygroundTab] = useState('chat'); // 'prompt' | 'chat' | 'inspector'
+  const [theme, setTheme] = useLocalStorage('gcp_theme', 'dark');
 
   const playgroundState = useChatPlayground();
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    }
+  }, [theme]);
 
   const handleRunScenario = (query) => {
     playgroundState.setDraftMessage(query);
@@ -39,6 +51,8 @@ export default function App() {
         setSelectedModel={playgroundState.setSelectedModel}
         isStreaming={playgroundState.isStreaming}
         setIsStreaming={playgroundState.setIsStreaming}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       {/* Missing Key Warning / Setup Guide Banner */}

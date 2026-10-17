@@ -2,6 +2,7 @@ import express from 'express';
 import { validateChatPayload } from '../lib/validators.js';
 import { buildMessages } from '../lib/buildMessages.js';
 import { createGroqChatCompletion, createGroqChatStream } from '../lib/groqClient.js';
+import { getApiKey } from '../lib/getApiKey.js';
 
 const router = express.Router();
 
@@ -61,8 +62,8 @@ router.post('/chat', async (req, res) => {
     });
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey || !apiKey.trim()) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
     return res.status(401).json({
       error: {
         code: 'MISSING_API_KEY',
@@ -120,8 +121,8 @@ router.post('/chat/stream', async (req, res) => {
     });
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey || !apiKey.trim()) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
     return res.status(401).json({
       error: {
         code: 'MISSING_API_KEY',

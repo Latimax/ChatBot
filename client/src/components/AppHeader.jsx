@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Scale,
-  FlaskConical
+  FlaskConical,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 export function AppHeader({
@@ -22,7 +24,9 @@ export function AppHeader({
   selectedModel,
   setSelectedModel,
   isStreaming,
-  setIsStreaming
+  setIsStreaming,
+  theme,
+  setTheme
 }) {
   const currentModelData = models.find(m => m.id === selectedModel);
 
@@ -77,11 +81,13 @@ export function AppHeader({
               onChange={(e) => setSelectedModel(e.target.value)}
               className="bg-transparent text-xs font-medium text-slate-200 focus:outline-none cursor-pointer max-w-[200px] truncate"
             >
-              {models.map((m) => (
-                <option key={m.id} value={m.id} className="bg-slate-900 text-slate-200">
-                  {m.name || m.id} {m.documentedFreeTier ? '★ Free-Plan' : ''}
-                </option>
-              ))}
+              {models
+                .filter(m => m.isChatCapable !== false)
+                .map((m) => (
+                  <option key={m.id} value={m.id} className="bg-slate-900 text-slate-200">
+                    {m.name || m.id} {m.documentedFreeTier ? '★ Free-Plan' : ''}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -106,6 +112,26 @@ export function AppHeader({
           >
             <Zap className={`w-3.5 h-3.5 ${isStreaming ? 'text-indigo-400 animate-pulse' : 'text-slate-500'}`} />
             <span>Stream: {isStreaming ? 'ON' : 'OFF'}</span>
+          </button>
+
+          {/* Theme Switcher Button */}
+          <button
+            type="button"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden sm:inline">Dark</span>
+              </>
+            )}
           </button>
         </div>
 

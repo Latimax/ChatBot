@@ -94,11 +94,13 @@ export function ModelCompare({
               onChange={(e) => setModelA(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
             >
-              {models.map(m => (
-                <option key={`a-${m.id}`} value={m.id}>
-                  {m.name || m.id} {m.documentedFreeTier ? '★ Free-Plan' : ''}
-                </option>
-              ))}
+              {models
+                .filter(m => m.isChatCapable !== false)
+                .map(m => (
+                  <option key={`a-${m.id}`} value={m.id}>
+                    {m.name || m.id} {m.documentedFreeTier ? '★ Free-Plan' : ''}
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -109,11 +111,13 @@ export function ModelCompare({
               onChange={(e) => setModelB(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
             >
-              {models.map(m => (
-                <option key={`b-${m.id}`} value={m.id}>
-                  {m.name || m.id} {m.documentedFreeTier ? '★ Free-Plan' : ''}
-                </option>
-              ))}
+              {models
+                .filter(m => m.isChatCapable !== false)
+                .map(m => (
+                  <option key={`b-${m.id}`} value={m.id}>
+                    {m.name || m.id} {m.documentedFreeTier ? '★ Free-Plan' : ''}
+                  </option>
+                ))}
             </select>
           </div>
         </div>

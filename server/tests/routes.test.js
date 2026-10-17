@@ -74,7 +74,7 @@ describe('Express API Routes', () => {
   describe('POST /api/chat - Validation & Key Handling', () => {
     it('returns 401 MISSING_API_KEY if GROQ_API_KEY is not configured', async () => {
       const originalKey = process.env.GROQ_API_KEY;
-      delete process.env.GROQ_API_KEY;
+      process.env.GROQ_API_KEY = '';
 
       const res = await request(app).post('/api/chat').send({
         model: 'openai/gpt-oss-20b',
@@ -110,7 +110,7 @@ describe('Express API Routes', () => {
   describe('GET /api/models', () => {
     it('returns snapshot models with liveDiscovery: false when no key is configured', async () => {
       const originalKey = process.env.GROQ_API_KEY;
-      delete process.env.GROQ_API_KEY;
+      process.env.GROQ_API_KEY = '';
 
       const res = await request(app).get('/api/models');
       expect(res.status).toBe(200);
